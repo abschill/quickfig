@@ -1,0 +1,4 @@
+ping = "pong"
+
+[foo]
+bar = baz
