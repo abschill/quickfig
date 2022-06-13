@@ -17,6 +17,9 @@
     "ini",
     "env"
   ],
+  "files": [
+	"lib/**/*"
+  ],
   "author": "abschill",
   "license": "MIT",
   "dependencies": {
