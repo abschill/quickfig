@@ -1,11 +1,8 @@
+import { join } from 'path';
 import {
 	readdirSync,
 	readFileSync
 } from 'fs';
-import {
-	join,
-	resolve
-} from 'path';
 import {
 	useXML,
 	useJSON,
@@ -15,75 +12,79 @@ import {
 	useJSModule
 } from './types';
 
-export type FileType = 'yml' | 'toml' | 'yaml' | 'xml' | 'json' | 'js' | 'ini' | string;
+export type ParseType = {
+	name: string;
+	validExtensions: string[];
+	parser: (a: any) => object;
+}
+
+export const ParseTypes: ParseType[] = [
+	{
+		name: 'yaml',
+		validExtensions: ['yml', 'yaml'],
+		parser: useYAML
+	},
+	{
+		name: 'json',
+		validExtensions: ['json', 'jsonp'],
+		parser: useJSON
+	},
+	{
+		name: 'javascript',
+		validExtensions: ['js', 'esm', 'cjs'],
+		parser: useJSModule
+	},
+	{
+		name: 'xml',
+		validExtensions: ['xml'],
+		parser: useXML
+	},
+	{
+		name: 'toml',
+		validExtensions: ['toml'],
+		parser: useTOML
+	},
+	{
+		name: 'ini',
+		validExtensions: ['ini', ''],
+		parser: useINI
+	}
+]
+
 
 export type ParserOptions = {
+	allowedTypes ?: ParseType['name'][];
 	baseTag ?: string;
 	dir ?: string;
-	types ?: FileType[];
 }
 
 const useDir = (name: string) => readdirSync(name);
 
-function make(
-	matcher: FileType,
-	path: string,
-	resolved: any
-) {
-	return {
-		type: matcher,
-		path,
-		resolved
-	};
-}
-
-function _resolve(
-	file: string,
-	matcher: FileType,
-	fpath: string,
-	acc: any[],
-	options: ParserOptions
-) {
-	if(file.includes(matcher)) {
-		const contentString = readFileSync(fpath, 'utf-8');
-		switch(matcher) {
-			case 'xml':
-				if(options.baseTag) return acc.push(make(matcher, fpath, useXML(contentString)[options.baseTag]));
-				return acc.push(make(matcher, fpath, useXML(contentString)));
-			case 'json':
-				if(options.baseTag) return acc.push(make(matcher, fpath, useJSON(contentString)[options.baseTag]));
-				return acc.push(make(matcher, fpath, useJSON(contentString)));
-			case 'js':
-				if(options.baseTag) return acc.push(make(matcher, fpath, useJSModule(resolve(process.cwd(), fpath))[options.baseTag]));
-				return acc.push(useJSModule(resolve(process.cwd(), fpath)));
-			case 'toml':
-				if(options.baseTag) return acc.push(make(matcher, fpath, useTOML(contentString)[options.baseTag]));
-				return acc.push(make(matcher, fpath, useTOML(contentString)));
-			case 'yaml':
-			case 'yml':
-				if(options.baseTag) return acc.push(make(matcher, fpath, useYAML(contentString)[options.baseTag]));
-				return acc.push(make(matcher, fpath, useYAML(contentString)));
-			case 'ini':
-				// no options root feature in ini configs
-				return acc.push(make(matcher, fpath, useINI(contentString)));
-			default:
-				break;
-		}
-	}
-}
-
 export function useConfig(
 	options ?: ParserOptions
 ) {
-	const discoveredConfigs = [];
+	const acc = [];
 	const { dir = process.cwd(), types = ['json'] } = {...options};
 	const files = useDir(dir);
+	const parserTypes = types.map(t => ParseTypes.filter(pt => pt.name === t).shift());
 	files.forEach(file => {
 		if(types.includes(file.split('.')?.pop())) {
 			const fpath = join(dir, file);
-			const matchedType = types.filter(t => file.includes(t)).shift();
-			_resolve(file, matchedType, fpath, discoveredConfigs, options);
+			const matcher = types.filter(t => file.includes(t)).shift();
+			if(parserTypes.map(pt => pt.name).includes(matcher)) {
+				const parsedType = parserTypes.filter(pt => pt.name === matcher).shift();
+				const contentString = readFileSync(fpath, 'utf-8');
+				let data;
+				if(parsedType.name !== 'javascript') {
+					data = parsedType.parser(contentString);
+				}
+				else {
+					data = parsedType.parser(fpath);
+				}
+				if(options.baseTag && (parsedType.name !== 'ini')) return acc.push(data[options.baseTag]);
+				return acc.push(data);
+			}
 		}
 	});
-	return discoveredConfigs;
+	return acc;
 }
