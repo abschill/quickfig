@@ -1,7 +1,7 @@
 const { useConfig } = require('./build');
 
 console.log(useConfig({
-    dir: '__fixtures__',
+    configPath: '__fixtures__',
     types: [
 	'xml'
     ],

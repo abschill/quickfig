@@ -55,7 +55,7 @@ export const ParseTypes: ParseType[] = [
 export type ParserOptions = {
 	allowedTypes ?: ParseType['name'][];
 	baseTag ?: string;
-	dir ?: string;
+	configPath ?: string;
 }
 
 const useDir = (name: string) => readdirSync(name);
@@ -64,12 +64,12 @@ export function useConfig(
 	options ?: ParserOptions
 ) {
 	const acc = [];
-	const { dir = process.cwd(), types = ['json'] } = {...options};
-	const files = useDir(dir);
+	const { configPath = process.cwd(), types = ['json'] } = {...options};
+	const files = useDir(configPath);
 	const parserTypes = types.map(t => ParseTypes.filter(pt => pt.name === t).shift());
 	files.forEach(file => {
 		if(types.includes(file.split('.')?.pop())) {
-			const fpath = join(dir, file);
+			const fpath = join(configPath, file);
 			const matcher = types.filter(t => file.includes(t)).shift();
 			if(parserTypes.map(pt => pt.name).includes(matcher)) {
 				const parsedType = parserTypes.filter(pt => pt.name === matcher).shift();
