@@ -1,4 +1,4 @@
-const { useConfig } = require('../build');
+const { useConfig } = require('../lib');
 
 const { log } = console;
 const base = { baseTag: 'config' };
