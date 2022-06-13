@@ -50,6 +50,7 @@ export type ParserOptions = {
 	allowedTypes ?: string[];
 	baseTag ?: string;
 	configPath ?: string;
+	setEnv	?: boolean;
 }
 
 const useDir = (name: string) => readdirSync(name);

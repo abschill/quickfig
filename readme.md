@@ -1,4 +1,5 @@
 # quickfig
+![](logo.png)
 ## configuration format normalizer
 
 parse n config types in a single library/application
@@ -14,5 +15,6 @@ js, json, yaml, toml, xml
 - `baseTag` the tag to destructure from as your config base
 - `configPath` the dir to look for config files in
 
+it will return a list of matching files, with their paths and content in a javascript object.
 
 [examples](examples/index.js)
