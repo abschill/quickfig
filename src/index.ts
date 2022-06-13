@@ -1,87 +1,48 @@
 import { resolve } from 'path';
+import { sync } from 'glob';
+import { readFileSync } from 'fs';
 import {
-	readdirSync,
-	readFileSync
-} from 'fs';
-import {
-	useXML,
-	useJSON,
-	useTOML,
-	useYAML,
-	useJSModule
+	ParserOptions,
+	ParseTypes
 } from './types';
-
-export type ParseType = {
-	name: string;
-	validExtensions: string[];
-	parser: (a: any) => object;
-}
-
-export const ParseTypes: ParseType[] = [
-	{
-		name: 'yaml',
-		validExtensions: ['yml', 'yaml'],
-		parser: useYAML
-	},
-	{
-		name: 'json',
-		validExtensions: ['json', 'jsonp'],
-		parser: useJSON
-	},
-	{
-		name: 'js',
-		validExtensions: ['js', 'esm', 'cjs'],
-		parser: useJSModule
-	},
-	{
-		name: 'xml',
-		validExtensions: ['xml'],
-		parser: useXML
-	},
-	{
-		name: 'toml',
-		validExtensions: ['toml'],
-		parser: useTOML
-	}
-]
-
-
-export type ParserOptions = {
-	allowedTypes ?: string[];
-	baseTag ?: string;
-	configPath ?: string;
-	setEnv	?: boolean;
-}
-
-const useDir = (name: string) => readdirSync(name);
 
 export function useConfig(
 	options ?: ParserOptions
 ) {
-	const path = options.configPath || process.cwd();
+	const {
+		basePath = process.cwd(),
+		cleanResponse = true,
+		pattern = '*.*',
+		baseTag = null,
+		allowedTypes = ['xml', 'yaml', 'js', 'json', 'toml']
+	} = options;
+
 	const keyring = [];
-	const files = useDir(path);
-	const parserTypes = options.allowedTypes.map(t => ParseTypes.filter(pt => pt.validExtensions.includes(t))).flat();
+	const files = sync(pattern, { cwd: basePath });
+	const parserTypes = allowedTypes.map(t => ParseTypes.filter(pt => pt.validExtensions.includes(t))).flat();
 	parserTypes.forEach(pt => {
 		const fileFilter = files.filter(f => pt.validExtensions.filter(ve => f.split('.').pop() === ve).length > 0);
 		if(fileFilter.length === 0) {
 			return;
 		}
 		const mappedFiles = fileFilter.map(f => {
-			const p = resolve(path, f);
+			const p = resolve(basePath, f);
 			const content = pt.name === 'js' ? pt.parser(p) : pt.parser(readFileSync(p, 'utf-8'));
-			if(!options.baseTag) {
-				return {
-					path: p,
-					content
-				}
-			}
-			return {
+			return baseTag ? {
 				path: p,
-				content: content[options.baseTag]
+				type: pt,
+				content: content[baseTag]
+			} : {
+				path: p,
+				type: pt,
+				content
 			}
 		});
 		keyring.push(mappedFiles);
 	});
-	return keyring.flat();
+	const flat = keyring.flat();
+	if(cleanResponse) {
+		return flat.length === 1 ? flat[0].content : flat.map(f => f.content);
+	}
+	return flat.length === 1 ? flat[0] : flat;
 }

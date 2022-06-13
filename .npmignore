@@ -1,2 +1,4 @@
 pkg_cache
 build
+examples
+__fixtures__
