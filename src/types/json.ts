@@ -3,3 +3,9 @@ export function useJSON(
 ): NodeRequire {
 	return JSON.parse(input);
 }
+
+export function useJSModule(
+	path: string
+): NodeRequire {
+	return require(path);
+}

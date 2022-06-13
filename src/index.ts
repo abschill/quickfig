@@ -1,60 +1,88 @@
-import { readdirSync, readFileSync } from 'fs';
-import { join } from 'path';
+import {
+	readdirSync,
+	readFileSync
+} from 'fs';
+import {
+	join,
+	resolve
+} from 'path';
 import {
 	useXML,
 	useJSON,
 	useINI,
 	useTOML,
-	useYAML
+	useYAML,
+	useJSModule
 } from './types';
+
+export type FileType = 'yml' | 'toml' | 'yaml' | 'xml' | 'json' | 'js' | 'ini' | string;
+
+export type ParserOptions = {
+	baseTag ?: string;
+	dir ?: string;
+	types ?: FileType[];
+}
 
 const useDir = (name: string) => readdirSync(name);
 
-function _checkType(
+function make(
+	matcher: FileType,
+	path: string,
+	resolved: any
+) {
+	return {
+		type: matcher,
+		path,
+		resolved
+	};
+}
+
+function _resolve(
 	file: string,
-	matcher: string,
+	matcher: FileType,
 	fpath: string,
-	acc: any[]
+	acc: any[],
+	options: ParserOptions
 ) {
 	if(file.includes(matcher)) {
 		const contentString = readFileSync(fpath, 'utf-8');
 		switch(matcher) {
 			case 'xml':
-				acc.push(useXML(contentString));
-				break;
+				if(options.baseTag) return acc.push(make(matcher, fpath, useXML(contentString)[options.baseTag]));
+				return acc.push(make(matcher, fpath, useXML(contentString)));
 			case 'json':
-				acc.push(useJSON(contentString));
-				break;
+				if(options.baseTag) return acc.push(make(matcher, fpath, useJSON(contentString)[options.baseTag]));
+				return acc.push(make(matcher, fpath, useJSON(contentString)));
+			case 'js':
+				if(options.baseTag) return acc.push(make(matcher, fpath, useJSModule(resolve(process.cwd(), fpath))[options.baseTag]));
+				return acc.push(useJSModule(resolve(process.cwd(), fpath)));
 			case 'toml':
-				acc.push(useTOML(contentString));
-				break;
+				if(options.baseTag) return acc.push(make(matcher, fpath, useTOML(contentString)[options.baseTag]));
+				return acc.push(make(matcher, fpath, useTOML(contentString)));
 			case 'yaml':
 			case 'yml':
-				acc.push(useYAML(contentString));
+				if(options.baseTag) return acc.push(make(matcher, fpath, useYAML(contentString)[options.baseTag]));
+				return acc.push(make(matcher, fpath, useYAML(contentString)));
 			case 'ini':
-				acc.push(useINI(contentString));
+				// no options root feature in ini configs
+				return acc.push(make(matcher, fpath, useINI(contentString)));
 			default:
 				break;
 		}
 	}
-	return;
 }
 
 export function useConfig(
-	options ?: {
-		types ?: string[];
-		dir ?: string // directory to look in for a valid match
-	}
+	options ?: ParserOptions
 ) {
 	const discoveredConfigs = [];
 	const { dir = process.cwd(), types = ['json'] } = {...options};
 	const files = useDir(dir);
 	files.forEach(file => {
-
 		if(types.includes(file.split('.')?.pop())) {
 			const fpath = join(dir, file);
 			const matchedType = types.filter(t => file.includes(t)).shift();
-			_checkType(file, matchedType, fpath, discoveredConfigs);
+			_resolve(file, matchedType, fpath, discoveredConfigs, options);
 		}
 	});
 	return discoveredConfigs;

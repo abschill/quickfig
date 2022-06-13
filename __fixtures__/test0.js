@@ -1,4 +1,6 @@
 module.exports = {
-	foo: 'bar',
-	ping: 'pong'
+	config: {
+		foo: 'bar',
+		ping: 'pong'
+	}
 }
