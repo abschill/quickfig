@@ -1,15 +1,24 @@
 {
-  "name": "muffintop",
-  "version": "1.0.0",
-  "description": "",
+  "name": "quickfig",
+  "version": "0.1.0",
+  "description": "quickly normalize multiple configuration file formats",
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+	"configuration",
+	"parser",
+	"xml",
+	"yaml",
+	"yml",
+	"toml",
+	"ini",
+	"env"
+  ],
+  "author": "abschill",
+  "license": "MIT",
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "fast-xml-parser": "^4.0.8",

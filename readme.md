@@ -1,8 +1,8 @@
-# muffintop
+# quickfig
 ## configuration format normalizer
 
-turns an array of file types into custom implementation-defined typescript interfaces.
+parse n config types in a single library/application
 
 
 ## supported formats
-json, yaml, toml, xml, ini
+js, json, yaml, toml, xml, ini
