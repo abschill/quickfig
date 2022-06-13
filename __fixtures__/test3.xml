@@ -1,4 +1,4 @@
-<foo>
-	<bar>baz</bar>
-</foo>
-<ping>pong</ping>
+<config>
+	<foo>bar</foo>
+	<ping>pong</ping>
+</config>

@@ -3,6 +3,7 @@
 		"baseUrl": ".",
 		"declaration": true,
 		"rootDir": "src",
+		"outDir": "build",
 		"target": "ES2016",
 		"module": "CommonJS",
 		"moduleResolution": "node"
