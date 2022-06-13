@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { resolve } from 'path';
 import {
 	readdirSync,
 	readFileSync
@@ -6,7 +6,6 @@ import {
 import {
 	useXML,
 	useJSON,
-	useINI,
 	useTOML,
 	useYAML,
 	useJSModule
@@ -30,7 +29,7 @@ export const ParseTypes: ParseType[] = [
 		parser: useJSON
 	},
 	{
-		name: 'javascript',
+		name: 'js',
 		validExtensions: ['js', 'esm', 'cjs'],
 		parser: useJSModule
 	},
@@ -43,17 +42,12 @@ export const ParseTypes: ParseType[] = [
 		name: 'toml',
 		validExtensions: ['toml'],
 		parser: useTOML
-	},
-	{
-		name: 'ini',
-		validExtensions: ['ini', ''],
-		parser: useINI
 	}
 ]
 
 
 export type ParserOptions = {
-	allowedTypes ?: ParseType['name'][];
+	allowedTypes ?: string[];
 	baseTag ?: string;
 	configPath ?: string;
 }
@@ -63,28 +57,30 @@ const useDir = (name: string) => readdirSync(name);
 export function useConfig(
 	options ?: ParserOptions
 ) {
-	const acc = [];
-	const { configPath = process.cwd(), types = ['json'] } = {...options};
-	const files = useDir(configPath);
-	const parserTypes = types.map(t => ParseTypes.filter(pt => pt.name === t).shift());
-	files.forEach(file => {
-		if(types.includes(file.split('.')?.pop())) {
-			const fpath = join(configPath, file);
-			const matcher = types.filter(t => file.includes(t)).shift();
-			if(parserTypes.map(pt => pt.name).includes(matcher)) {
-				const parsedType = parserTypes.filter(pt => pt.name === matcher).shift();
-				const contentString = readFileSync(fpath, 'utf-8');
-				let data;
-				if(parsedType.name !== 'javascript') {
-					data = parsedType.parser(contentString);
-				}
-				else {
-					data = parsedType.parser(fpath);
-				}
-				if(options.baseTag && (parsedType.name !== 'ini')) return acc.push(data[options.baseTag]);
-				return acc.push(data);
-			}
+	const path = options.configPath || process.cwd();
+	const keyring = [];
+	const files = useDir(path);
+	const parserTypes = options.allowedTypes.map(t => ParseTypes.filter(pt => pt.validExtensions.includes(t))).flat();
+	parserTypes.forEach(pt => {
+		const fileFilter = files.filter(f => pt.validExtensions.filter(ve => f.split('.').pop() === ve).length > 0);
+		if(fileFilter.length === 0) {
+			return;
 		}
+		const mappedFiles = fileFilter.map(f => {
+			const p = resolve(path, f);
+			const content = pt.name === 'js' ? pt.parser(p) : pt.parser(readFileSync(p, 'utf-8'));
+			if(!options.baseTag) {
+				return {
+					path: p,
+					content
+				}
+			}
+			return {
+				path: p,
+				content: content[options.baseTag]
+			}
+		});
+		keyring.push(mappedFiles);
 	});
-	return acc;
+	return keyring.flat();
 }
