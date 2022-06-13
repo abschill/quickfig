@@ -3,3 +3,4 @@ node_modules
 build
 pkg-cache
 test.js
+.DS_STORE
